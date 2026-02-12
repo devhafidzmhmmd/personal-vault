@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer components {
+    .dark main .bg-white {
+        @apply bg-gray-800;
+    }
+    .dark main .border-gray-200 {
+        @apply border-gray-700;
+    }
+    .dark main .text-gray-900 {
+        @apply text-gray-100;
+    }
+    .dark main .text-gray-800 {
+        @apply text-gray-200;
+    }
+    .dark main .text-gray-700 {
+        @apply text-gray-300;
+    }
+    .dark main .text-gray-500 {
+        @apply text-gray-400;
+    }
+    .dark main .bg-gray-50 {
+        @apply bg-gray-800;
+    }
+    .dark main .bg-green-50 {
+        @apply bg-green-900/30;
+    }
+    .dark main .text-green-800 {
+        @apply text-green-300;
+    }
+    .dark main .bg-blue-50 {
+        @apply bg-blue-900/30;
+    }
+    .dark main .text-blue-800 {
+        @apply text-blue-300;
+    }
+    .dark main .text-red-600 {
+        @apply text-red-400;
+    }
+}
