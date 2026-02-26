@@ -27,4 +27,14 @@ class Workspace extends Model
     {
         return $this->hasMany(Shortcut::class)->orderBy('order');
     }
+
+    public function todos(): HasMany
+    {
+        return $this->hasMany(Todo::class)->orderBy('position')->orderBy('due_date');
+    }
+
+    public function customEvents(): HasMany
+    {
+        return $this->hasMany(CustomEvent::class)->orderBy('event_date');
+    }
 }
