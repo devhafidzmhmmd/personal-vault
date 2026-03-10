@@ -4,10 +4,12 @@ use App\Http\Controllers\CustomEventController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MasterPasswordController;
 use App\Http\Controllers\PasswordController;
+use App\Http\Controllers\PasswordPrefixController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShortcutController;
 use App\Http\Controllers\TodoController;
+use App\Http\Controllers\ToolController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceSelectController;
 use Illuminate\Support\Facades\Route;
@@ -38,14 +40,20 @@ Route::middleware(['auth', 'verified', 'vault.unlocked'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('/settings/master-password', [SettingsController::class, 'masterPassword'])->name('settings.master-password');
     Route::put('/settings/master-password', [SettingsController::class, 'updateMasterPassword'])->name('settings.master-password.update');
+    Route::get('/settings/account-password', [SettingsController::class, 'accountPassword'])->name('settings.account-password');
     Route::resource('settings/workspace', WorkspaceController::class)->except(['show'])->names('settings.workspace');
 
     Route::post('passwords/{password}/reveal', [PasswordController::class, 'reveal'])->name('passwords.reveal');
     Route::resource('passwords', PasswordController::class)->except(['show']);
+    Route::resource('password-prefixes', PasswordPrefixController::class)->except(['show']);
     Route::resource('shortcuts', ShortcutController::class)->except(['show']);
     Route::patch('todos/{todo}/status', [TodoController::class, 'updateStatus'])->name('todos.update-status');
     Route::resource('todos', TodoController::class)->except(['show']);
     Route::resource('custom-events', CustomEventController::class)->except(['show', 'index']);
+
+    Route::get('/tools', [ToolController::class, 'index'])->name('tools.index');
+    Route::get('/tools/json-to-excel', [ToolController::class, 'jsonToExcel'])->name('tools.json-to-excel');
+    Route::post('/tools/json-to-excel', [ToolController::class, 'convertJsonToExcel'])->name('tools.json-to-excel.convert');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -20,8 +20,17 @@
 
     <form method="GET" action="{{ route('passwords.index') }}" class="mb-4 flex flex-wrap gap-2 items-end">
         <div>
-            <label for="type" class="block text-sm font-medium text-gray-700">{{ __('Tipe') }}</label>
-            <select name="type" id="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2">
+            <label for="prefix_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Prefix') }}</label>
+            <select name="prefix_id" id="prefix_id" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2">
+                <option value="">{{ __('Semua') }}</option>
+                @foreach($prefixes as $p)
+                    <option value="{{ $p->id }}" {{ request('prefix_id') == (string) $p->id ? 'selected' : '' }}>{{ $p->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Tipe') }}</label>
+            <select name="type" id="type" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2">
                 <option value="">{{ __('Semua') }}</option>
                 @foreach(\App\Models\Password::types() as $value => $label)
                     <option value="{{ $value }}" {{ request('type') == $value ? 'selected' : '' }}>{{ $label }}</option>
@@ -31,6 +40,11 @@
         <button type="submit" class="text-white bg-gray-700 hover:bg-gray-800 font-medium rounded-lg text-sm px-4 py-2">
             {{ __('Filter') }}
         </button>
+        @if($filterPrefix && $filterPrefix->shortcut)
+            <a href="{{ $filterPrefix->shortcut->url }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline text-sm py-2">
+                {{ __('Buka pintasan') }}
+            </a>
+        @endif
     </form>
 
     <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -46,8 +60,8 @@
             </thead>
             <tbody>
                 @forelse($passwords as $password)
-                    <tr class="bg-white border-b hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium text-gray-900">{{ $password->name }}</td>
+                    <tr class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ $password->display_name }}</td>
                         <td class="px-6 py-4">{{ $password->username ?? '—' }}</td>
                         <td class="px-6 py-4">
                             <span class="px-2 py-1 text-xs font-medium rounded {{ match($password->type) { 'app' => 'bg-blue-100 text-blue-800', 'db' => 'bg-green-100 text-green-800', 'server' => 'bg-amber-100 text-amber-800', default => 'bg-gray-100 text-gray-800' } }}">
@@ -68,7 +82,7 @@
                             @php
                                 $detailJson = json_encode([
                                     'id' => $password->id,
-                                    'name' => $password->name,
+                                    'name' => $password->display_name,
                                     'username' => $password->username ?? '',
                                     'type' => $password->type,
                                     'typeLabel' => \App\Models\Password::types()[$password->type] ?? $password->type,

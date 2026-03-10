@@ -25,6 +25,11 @@ class SettingsController extends Controller
         return view('settings.master-password');
     }
 
+    public function accountPassword(): View
+    {
+        return view('settings.account-password');
+    }
+
     public function updateMasterPassword(Request $request): RedirectResponse
     {
         $request->validate([

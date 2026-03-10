@@ -23,6 +23,11 @@ class Workspace extends Model
         return $this->hasMany(Password::class);
     }
 
+    public function passwordPrefixes(): HasMany
+    {
+        return $this->hasMany(PasswordPrefix::class);
+    }
+
     public function shortcuts(): HasMany
     {
         return $this->hasMany(Shortcut::class)->orderBy('order');

@@ -22,6 +22,18 @@
                 @enderror
             </div>
             <div class="mb-4">
+                <label for="prefix_id" class="block mb-2 text-sm font-medium text-gray-900">{{ __('Prefix') }}</label>
+                <select name="prefix_id" id="prefix_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                    <option value="">{{ __('— Tanpa prefix') }}</option>
+                    @foreach($prefixes as $p)
+                        <option value="{{ $p->id }}" {{ old('prefix_id') == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>
+                    @endforeach
+                </select>
+                @error('prefix_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+            <div class="mb-4">
                 <label for="name" class="block mb-2 text-sm font-medium text-gray-900">{{ __('Nama') }}</label>
                 <input type="text" name="name" id="name" value="{{ old('name') }}" required
                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">

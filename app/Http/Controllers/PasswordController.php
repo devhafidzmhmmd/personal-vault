@@ -44,6 +44,7 @@ class PasswordController extends Controller
         }
 
         $query = Password::query()
+            ->with('prefix')
             ->where('workspace_id', $workspace->id)
             ->orderBy('name');
 
@@ -51,9 +52,17 @@ class PasswordController extends Controller
             $query->where('type', $request->type);
         }
 
-        $passwords = $query->get();
+        if ($request->filled('prefix_id')) {
+            $query->where('prefix_id', $request->prefix_id);
+        }
 
-        return view('passwords.index', compact('passwords'));
+        $passwords = $query->get();
+        $prefixes = $workspace->passwordPrefixes()->orderBy('name')->get();
+        $filterPrefix = $request->filled('prefix_id')
+            ? $prefixes->firstWhere('id', (int) $request->prefix_id)
+            : null;
+
+        return view('passwords.index', compact('passwords', 'prefixes', 'filterPrefix'));
     }
 
     public function create(Request $request): View|RedirectResponse
@@ -63,7 +72,9 @@ class PasswordController extends Controller
             return redirect()->route('workspace.select');
         }
 
-        return view('passwords.create', compact('workspace'));
+        $prefixes = $workspace->passwordPrefixes()->orderBy('name')->get();
+
+        return view('passwords.create', compact('workspace', 'prefixes'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -76,17 +87,25 @@ class PasswordController extends Controller
         $request->validate([
             'type' => 'required|in:app,db,server,other',
             'name' => 'required|string|max:255',
+            'prefix_id' => 'nullable|exists:password_prefixes,id',
             'username' => 'nullable|string|max:255',
             'password' => 'required|string',
             'url' => 'nullable|string|url|max:2048',
             'notes' => 'nullable|string|max:5000',
         ]);
 
+        $prefixId = null;
+        if ($request->filled('prefix_id')) {
+            $prefix = $workspace->passwordPrefixes()->find($request->input('prefix_id'));
+            $prefixId = $prefix?->id;
+        }
+
         $key = $this->getVaultKey($request);
         $encrypted = $this->vaultCrypto->encrypt($request->input('password'), $key);
 
         Password::create([
             'workspace_id' => $workspace->id,
+            'prefix_id' => $prefixId,
             'type' => $request->input('type'),
             'name' => $request->input('name'),
             'username' => $request->input('username'),
@@ -111,9 +130,12 @@ class PasswordController extends Controller
         $key = $this->getVaultKey($request);
         $decrypted = $this->vaultCrypto->decrypt($password->getRawOriginal('password_encrypted'), $key);
 
+        $prefixes = $workspace->passwordPrefixes()->orderBy('name')->get();
+
         return view('passwords.edit', [
             'password' => $password,
             'passwordPlain' => $decrypted,
+            'prefixes' => $prefixes,
         ]);
     }
 
@@ -130,11 +152,18 @@ class PasswordController extends Controller
         $request->validate([
             'type' => 'required|in:app,db,server,other',
             'name' => 'required|string|max:255',
+            'prefix_id' => 'nullable|exists:password_prefixes,id',
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string',
             'url' => 'nullable|string|url|max:2048',
             'notes' => 'nullable|string|max:5000',
         ]);
+
+        $prefixId = null;
+        if ($request->filled('prefix_id')) {
+            $prefix = $workspace->passwordPrefixes()->find($request->input('prefix_id'));
+            $prefixId = $prefix?->id;
+        }
 
         $key = $this->getVaultKey($request);
         $encrypted = $request->filled('password')
@@ -144,6 +173,7 @@ class PasswordController extends Controller
         $password->update([
             'type' => $request->input('type'),
             'name' => $request->input('name'),
+            'prefix_id' => $prefixId,
             'username' => $request->input('username'),
             'password_encrypted' => $encrypted,
             'url' => $request->input('url'),

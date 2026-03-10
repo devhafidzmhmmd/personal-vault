@@ -11,9 +11,15 @@
                 <p class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pengaturan</p>
                 <ul class="space-y-0.5">
                     <li>
+                        <a href="{{ route('settings.account-password') }}" class="flex items-center px-3 py-2 text-sm rounded-lg {{ request()->routeIs('settings.account-password') ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+                            <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-2 2a5 5 0 00-5 5v2a1 1 0 001 1h12a1 1 0 001-1v-2a5 5 0 00-5-5H8z" clip-rule="evenodd"></path></svg>
+                            {{ __('Password akun') }}
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ route('settings.master-password') }}" class="flex items-center px-3 py-2 text-sm rounded-lg {{ request()->routeIs('settings.master-password') ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
                             <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-                            Master Password
+                            {{ __('Master Password') }}
                         </a>
                     </li>
                     <li>

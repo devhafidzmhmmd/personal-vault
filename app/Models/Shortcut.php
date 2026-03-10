@@ -31,4 +31,9 @@ class Shortcut extends Model
     {
         return $this->hasMany(Todo::class);
     }
+
+    public function passwordPrefixes(): HasMany
+    {
+        return $this->hasMany(PasswordPrefix::class);
+    }
 }
