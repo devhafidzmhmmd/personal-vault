@@ -22,6 +22,11 @@ class ToolController extends Controller
         return view('tools.json-to-excel');
     }
 
+    public function jsPlayground(): View
+    {
+        return view('tools.js-playground');
+    }
+
     public function convertJsonToExcel(Request $request): BinaryFileResponse|RedirectResponse
     {
         $request->validate([

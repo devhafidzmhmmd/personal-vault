@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified', 'vault.unlocked'])->group(function () {
     Route::get('/tools', [ToolController::class, 'index'])->name('tools.index');
     Route::get('/tools/json-to-excel', [ToolController::class, 'jsonToExcel'])->name('tools.json-to-excel');
     Route::post('/tools/json-to-excel', [ToolController::class, 'convertJsonToExcel'])->name('tools.json-to-excel.convert');
+    Route::get('/tools/js-playground', [ToolController::class, 'jsPlayground'])->name('tools.js-playground');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
