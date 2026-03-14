@@ -22,8 +22,8 @@ class CustomEventController extends Controller
 
     private function ensureEventInWorkspace(Request $request, CustomEvent $customEvent): void
     {
-        $workspace = $this->getCurrentWorkspace($request);
-        if (! $workspace || $customEvent->workspace_id !== $workspace->id) {
+        $customEvent->load('workspace');
+        if ($customEvent->workspace->user_id !== $request->user()->id) {
             abort(403);
         }
     }
@@ -50,20 +50,26 @@ class CustomEventController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'event_date' => 'required|date',
+            'event_end_date' => 'nullable|date|after_or_equal:event_date',
             'description' => 'nullable|string|max:5000',
+            'is_special' => 'nullable|boolean',
         ]);
+
+        $endDate = $validated['event_end_date'] ?? $validated['event_date'];
 
         CustomEvent::create([
             'workspace_id' => $workspace->id,
             'title' => $validated['title'],
             'event_date' => $validated['event_date'],
+            'event_end_date' => $endDate,
             'description' => $validated['description'] ?? null,
+            'is_special' => $request->boolean('is_special'),
         ]);
 
         $redirect = route('dashboard');
         $params = $request->only(['year', 'month']);
         if (! empty($params)) {
-            $redirect .= '?' . http_build_query($params);
+            $redirect .= '?'.http_build_query($params);
         }
 
         return redirect()->to($redirect)->with('success', __('Event ditambah.'));
@@ -83,15 +89,19 @@ class CustomEventController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'event_date' => 'required|date',
+            'event_end_date' => 'nullable|date|after_or_equal:event_date',
             'description' => 'nullable|string|max:5000',
+            'is_special' => 'nullable|boolean',
         ]);
 
+        $validated['event_end_date'] = $validated['event_end_date'] ?? $validated['event_date'];
+        $validated['is_special'] = $request->boolean('is_special');
         $customEvent->update($validated);
 
         $redirect = route('dashboard');
         $params = $request->only(['year', 'month']);
         if (! empty($params)) {
-            $redirect .= '?' . http_build_query($params);
+            $redirect .= '?'.http_build_query($params);
         }
 
         return redirect()->to($redirect)->with('success', __('Event diperbarui.'));
@@ -105,7 +115,7 @@ class CustomEventController extends Controller
         $redirect = route('dashboard');
         $params = $request->only(['year', 'month']);
         if (! empty($params)) {
-            $redirect .= '?' . http_build_query($params);
+            $redirect .= '?'.http_build_query($params);
         }
 
         return redirect()->to($redirect)->with('success', __('Event dihapus.'));

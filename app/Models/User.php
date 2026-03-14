@@ -24,6 +24,12 @@ class User extends Authenticatable
         'password',
         'master_password_hash',
         'master_password_salt',
+        'proman_user_id',
+        'proman_token',
+        'saved_locations',
+        'proman_username',
+        'proman_password',
+        'proman_api_key',
     ];
 
     /**
@@ -36,6 +42,7 @@ class User extends Authenticatable
         'remember_token',
         'master_password_hash',
         'master_password_salt',
+        'proman_password',
     ];
 
     /**
@@ -48,7 +55,32 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'saved_locations' => 'array',
         ];
+    }
+
+    public function hasAbsenSettingsConfigured(): bool
+    {
+        return ! empty($this->proman_user_id) && ! empty($this->proman_token);
+    }
+
+    public function hasPromanCredentials(): bool
+    {
+        return ! empty($this->proman_username) && ! empty($this->getPromanPassword()) && ! empty($this->proman_api_key);
+    }
+
+    public function getPromanPassword(): ?string
+    {
+        if (empty($this->attributes['proman_password'] ?? null)) {
+            return null;
+        }
+
+        return decrypt($this->attributes['proman_password']);
+    }
+
+    public function setPromanPasswordAttribute(?string $value): void
+    {
+        $this->attributes['proman_password'] = $value ? encrypt($value) : null;
     }
 
     public function workspaces(): HasMany

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AbsenHistory;
+use App\Models\CustomEvent;
 use App\Models\Workspace;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -49,14 +51,28 @@ class DashboardController extends Controller
                     ->unique()
                     ->values()
                     ->all();
-                $datesWithCustomEvents = $workspace->customEvents()
-                    ->whereBetween('event_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-                    ->get()
-                    ->pluck('event_date')
-                    ->map(fn ($d) => $d->format('Y-m-d'))
-                    ->unique()
-                    ->values()
-                    ->all();
+                $customEventsInMonth = CustomEvent::query()
+                    ->where('event_date', '<=', $monthEnd->toDateString())
+                    ->whereRaw('COALESCE(event_end_date, event_date) >= ?', [$monthStart->toDateString()])
+                    ->where(function ($q) use ($workspace, $request) {
+                        $q->where('workspace_id', $workspace->id)
+                            ->orWhere(function ($q2) use ($request) {
+                                $q2->where('is_special', true)
+                                    ->whereHas('workspace', fn ($w) => $w->where('user_id', $request->user()->id));
+                            });
+                    })
+                    ->get();
+                $datesWithCustomEvents = [];
+                foreach ($customEventsInMonth as $ev) {
+                    $end = $ev->event_end_date ?? $ev->event_date;
+                    for ($d = $ev->event_date->copy(); $d->lte($end); $d->addDay()) {
+                        $ds = $d->format('Y-m-d');
+                        if ($ds >= $monthStart->toDateString() && $ds <= $monthEnd->toDateString()) {
+                            $datesWithCustomEvents[$ds] = true;
+                        }
+                    }
+                }
+                $datesWithCustomEvents = array_keys($datesWithCustomEvents);
                 $calendarTitle = $monthStart->translatedFormat('F Y');
                 $calendarYear = $year;
                 $calendarMonth = $month;
@@ -177,11 +193,13 @@ class DashboardController extends Controller
         $holidaysFixed = config('holidays.fixed', []);
         $holidaysByYear = config('holidays.by_year', []);
         $yearStr = $monthStart->format('Y');
+        $agendaItems = [];
         foreach (array_keys($eventsByDate) as $dateStr) {
             $md = substr($dateStr, 5, 5); // m-d
             $holidayName = $holidaysByYear[$yearStr][$dateStr] ?? $holidaysFixed[$md] ?? null;
             if ($holidayName !== null) {
                 $eventsByDate[$dateStr][] = ['type' => 'holiday', 'title' => $holidayName, 'url' => null];
+                $agendaItems[] = ['type' => 'holiday', 'title' => $holidayName, 'url' => null, 'date_start' => $dateStr, 'date_end' => $dateStr];
             }
         }
 
@@ -206,23 +224,65 @@ class DashboardController extends Controller
                             $event['shortcut_url'] = $todo->shortcut->url;
                         }
                         $eventsByDate[$ds][] = $event;
+                        $agendaItems[] = array_merge($event, ['date_start' => $ds, 'date_end' => $ds]);
                     }
                 }
-                $customInMonth = $workspace->customEvents()
-                    ->whereBetween('event_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                $customInMonth = CustomEvent::query()
+                    ->where('event_date', '<=', $monthEnd->toDateString())
+                    ->whereRaw('COALESCE(event_end_date, event_date) >= ?', [$monthStart->toDateString()])
+                    ->where(function ($q) use ($workspace, $request) {
+                        $q->where('workspace_id', $workspace->id)
+                            ->orWhere(function ($q2) use ($request) {
+                                $q2->where('is_special', true)
+                                    ->whereHas('workspace', fn ($w) => $w->where('user_id', $request->user()->id));
+                            });
+                    })
                     ->get();
-                $editQuery = empty($dashboardParams) ? '' : '?' . http_build_query($dashboardParams);
+                $editQuery = empty($dashboardParams) ? '' : '?'.http_build_query($dashboardParams);
                 foreach ($customInMonth as $ev) {
-                    $ds = $ev->event_date->format('Y-m-d');
-                    if (isset($eventsByDate[$ds])) {
-                        $eventsByDate[$ds][] = [
-                            'type' => 'custom',
-                            'title' => $ev->title,
-                            'url' => route('custom-events.edit', $ev) . $editQuery,
-                            'id' => $ev->id,
-                        ];
+                    $end = $ev->event_end_date ?? $ev->event_date;
+                    $dateStart = $ev->event_date->format('Y-m-d');
+                    $dateEnd = $end->format('Y-m-d');
+                    $agendaItems[] = [
+                        'type' => 'custom',
+                        'id' => $ev->id,
+                        'title' => $ev->title,
+                        'url' => route('custom-events.edit', $ev).$editQuery,
+                        'date_start' => $dateStart,
+                        'date_end' => $dateEnd,
+                    ];
+                    for ($d = $ev->event_date->copy(); $d->lte($end); $d->addDay()) {
+                        $ds = $d->format('Y-m-d');
+                        if (isset($eventsByDate[$ds])) {
+                            $eventsByDate[$ds][] = [
+                                'type' => 'custom',
+                                'title' => $ev->title,
+                                'url' => route('custom-events.edit', $ev).$editQuery,
+                                'id' => $ev->id,
+                            ];
+                        }
                     }
                 }
+            }
+        }
+
+        usort($agendaItems, fn ($a, $b) => strcmp($a['date_start'], $b['date_start']));
+
+        $user = $request->user();
+        $absenSettingsConfigured = $user->hasAbsenSettingsConfigured();
+        $savedLocations = $user->saved_locations ?? [];
+        $todayDate = $now->toDateString();
+
+        $absenByDate = AbsenHistory::where('user_id', $user->id)
+            ->whereBetween('tgl_absen', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->get()
+            ->keyBy(fn ($h) => $h->tgl_absen->format('Y-m-d'))
+            ->map(fn ($h) => $h->hit_count)
+            ->all();
+
+        foreach ($calendarDays as $i => $cell) {
+            if ($cell !== null) {
+                $calendarDays[$i]['absen_count'] = $absenByDate[$cell['date']] ?? 0;
             }
         }
 
@@ -236,7 +296,12 @@ class DashboardController extends Controller
             'prevMonthUrl',
             'nextMonthUrl',
             'eventsByDate',
-            'dashboardParams'
+            'agendaItems',
+            'dashboardParams',
+            'absenSettingsConfigured',
+            'savedLocations',
+            'todayDate',
+            'absenByDate'
         ));
     }
 }

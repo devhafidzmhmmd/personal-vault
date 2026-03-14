@@ -104,6 +104,14 @@
                         <span class="ms-3">Todo</span>
                     </a>
                 </li>
+                @if($currentWorkspace && $currentWorkspace->proman_enabled)
+                <li>
+                    <a href="{{ route('settings.workspace.proman.index') }}" class="flex items-center p-2 text-gray-900 dark:text-white rounded-lg {{ request()->routeIs('settings.workspace.proman.*') ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+                        <span class="ms-3">Proman</span>
+                    </a>
+                </li>
+                @endif
                 <li>
                     <a href="{{ route('tools.index') }}" class="flex items-center p-2 text-gray-900 dark:text-white rounded-lg {{ request()->routeIs('tools.*') ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                         <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>

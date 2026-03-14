@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Shortcut;
 use App\Models\Workspace;
+use App\Services\FaviconService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -58,13 +59,18 @@ class ShortcutController extends Controller
         ]);
 
         $order = $workspace->shortcuts()->max('order') + 1;
-        $workspace->shortcuts()->create([
+        $shortcut = $workspace->shortcuts()->create([
             'user_id' => $request->user()->id,
             'title' => $request->input('title'),
             'url' => $request->input('url'),
             'icon' => $request->input('icon'),
             'order' => $order,
         ]);
+
+        $faviconPath = app(FaviconService::class)->fetchAndSave($shortcut->url);
+        if ($faviconPath) {
+            $shortcut->update(['favicon_path' => $faviconPath]);
+        }
 
         return redirect()->route('shortcuts.index')->with('success', __('Pintasan ditambah.'));
     }
@@ -98,7 +104,20 @@ class ShortcutController extends Controller
             'icon' => 'nullable|string|max:100',
         ]);
 
+        $urlChanged = $shortcut->url !== $request->input('url');
         $shortcut->update($request->only(['title', 'url', 'icon']));
+
+        if ($urlChanged) {
+            $faviconService = app(FaviconService::class);
+            if ($shortcut->favicon_path) {
+                $faviconService->delete($shortcut->favicon_path);
+                $shortcut->update(['favicon_path' => null]);
+            }
+            $faviconPath = $faviconService->fetchAndSave($shortcut->url);
+            if ($faviconPath) {
+                $shortcut->update(['favicon_path' => $faviconPath]);
+            }
+        }
 
         return redirect()->route('shortcuts.index')->with('success', __('Pintasan diperbarui.'));
     }

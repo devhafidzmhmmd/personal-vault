@@ -22,10 +22,28 @@
                 @enderror
             </div>
             <div class="mb-4">
-                <label for="event_date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ __('Tanggal') }}</label>
+                <label for="event_date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ __('Tanggal mulai') }}</label>
                 <input type="date" name="event_date" id="event_date" value="{{ old('event_date', $customEvent->event_date->format('Y-m-d')) }}" required
                     class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
                 @error('event_date')
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+            <div class="mb-4">
+                <label for="event_end_date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ __('Tanggal selesai') }}</label>
+                <input type="date" name="event_end_date" id="event_end_date" value="{{ old('event_end_date', $customEvent->event_end_date?->format('Y-m-d') ?? $customEvent->event_date->format('Y-m-d')) }}"
+                    class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                @error('event_end_date')
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Kosongkan untuk event satu hari. Isi untuk rentang tanggal.') }}</p>
+            </div>
+            <div class="mb-4 flex items-center">
+                <input type="hidden" name="is_special" value="0">
+                <input type="checkbox" name="is_special" id="is_special" value="1" {{ old('is_special', $customEvent->is_special) ? 'checked' : '' }}
+                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="is_special" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ __('Tandai sebagai event spesial (muncul di semua workspace)') }}</label>
+                @error('is_special')
                     <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                 @enderror
             </div>

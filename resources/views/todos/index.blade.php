@@ -15,13 +15,43 @@
         $queryParams = array_filter(['date' => $currentDate]);
         $urlList = $currentDate ? $baseUrl . '?' . http_build_query(array_merge($queryParams, ['view' => 'list'])) : $baseUrl . '?view=list';
         $urlKanban = $baseUrl . '?' . http_build_query(array_merge($queryParams, ['view' => 'kanban']));
+        $urlProman = $baseUrl . '?' . http_build_query(array_merge($queryParams, ['view' => 'proman']));
     @endphp
     <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">{{ __('Todo') }}</h1>
-        <a href="{{ route('todos.create') }}" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
-            {{ __('Tambah Todo') }}
-        </a>
+        <div class="flex flex-wrap gap-2">
+            @if(isset($workspace) && $workspace->proman_enabled)
+            <button type="button" data-modal-target="import-json-modal" data-modal-toggle="import-json-modal" class="text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 font-medium rounded-lg text-sm px-4 py-2">
+                {{ __('Import JSON') }}
+            </button>
+            @endif
+            <a href="{{ route('todos.create') }}" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
+                {{ __('Tambah Todo') }}
+            </a>
+        </div>
     </div>
+
+    @if(isset($workspace) && $workspace->proman_enabled)
+    <div id="import-json-modal" tabindex="-1" class="hidden fixed inset-0 z-50 flex items-center justify-center w-full p-4 overflow-x-hidden overflow-y-auto bg-gray-500/50 dark:bg-gray-900/80">
+        <div class="relative w-full max-w-2xl rounded-lg bg-white dark:bg-gray-800 shadow">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ __('Import Todo dari JSON') }}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ __('Format: array of objects dengan "title", atau object dengan key "todos". Opsional: description, due_date, id_project.') }}</p>
+                <form action="{{ route('todos.import-json') }}" method="POST">
+                    @csrf
+                    <textarea name="json" id="import-json-field" rows="12" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 block w-full p-2.5 font-mono" placeholder='[{"title": "Task 1", "description": "...", "due_date": "2026-01-25", "id_project": "uuid"}]'>{{ old('json') }}</textarea>
+                    @error('json')
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                    <div class="mt-4 flex gap-2">
+                        <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">{{ __('Import') }}</button>
+                        <button type="button" data-modal-hide="import-json-modal" class="text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 font-medium rounded-lg text-sm px-4 py-2">{{ __('Batal') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @if(session('success'))
         <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-green-900/20 dark:text-green-400">{{ session('success') }}</div>
@@ -34,16 +64,76 @@
         <a href="{{ $urlKanban }}" class="px-4 py-2 text-sm font-medium rounded-t-lg {{ $viewMode === 'kanban' ? 'bg-white dark:bg-gray-800 border border-b-0 border-gray-200 dark:border-gray-700 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200' }}">
             {{ __('Kanban') }}
         </a>
+        @if(isset($workspace) && $workspace->proman_enabled)
+        <a href="{{ $urlProman }}" class="px-4 py-2 text-sm font-medium rounded-t-lg {{ $viewMode === 'proman' ? 'bg-white dark:bg-gray-800 border border-b-0 border-gray-200 dark:border-gray-700 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200' }}">
+            {{ __('Riwayat Proman') }}
+        </a>
+        @endif
     </div>
 
     @if($viewMode === 'list')
+        @if(isset($workspace) && $workspace->proman_enabled && $promanProjects->isNotEmpty() && $todos->isNotEmpty())
+        <div class="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-wrap items-end gap-4">
+            <form id="batch-assign-form" method="POST" action="{{ route('todos.batch-assign-project') }}" class="flex flex-wrap items-end gap-4">
+                @csrf
+                <div id="batch-assign-ids"></div>
+                <div>
+                    <label for="batch_proman_project_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Assign project') }}</label>
+                    <select name="proman_project_id" id="batch_proman_project_id" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm p-2">
+                        <option value="">{{ __('— Tidak ubah —') }}</option>
+                        @foreach($promanProjects as $p)
+                            <option value="{{ $p->id }}">{{ $p->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit" id="batch-assign-btn" class="text-white bg-blue-700 hover:bg-blue-800 text-sm font-medium rounded-lg px-4 py-2">{{ __('Assign project') }}</button>
+            </form>
+            <form id="batch-schedule-form" method="POST" action="{{ route('todos.batch-schedule-submit') }}" class="flex flex-wrap items-end gap-4">
+                @csrf
+                <div id="batch-schedule-ids"></div>
+                <div>
+                    <label for="batch_proman_submit_scheduled_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Jadwal submit') }}</label>
+                    <input type="datetime-local" name="proman_submit_scheduled_at" id="batch_proman_submit_scheduled_at" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm p-2">
+                </div>
+                <div class="flex items-center">
+                    <input type="hidden" name="submit_now" value="0">
+                    <input type="checkbox" name="submit_now" id="batch_submit_now" value="1" class="w-4 h-4 rounded">
+                    <label for="batch_submit_now" class="ms-2 text-sm text-gray-700 dark:text-gray-300">{{ __('Langsung kirim') }}</label>
+                </div>
+                <button type="submit" id="batch-schedule-btn" class="text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 text-sm font-medium rounded-lg px-4 py-2">{{ __('Jadwalkan submit') }}</button>
+            </form>
+        </div>
+        <script>
+        document.querySelectorAll('#batch-assign-form, #batch-schedule-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                var ids = Array.from(document.querySelectorAll('.todo-batch-checkbox:checked')).map(function(cb) { return cb.value; });
+                if (ids.length === 0) { e.preventDefault(); alert('{{ __('Pilih minimal satu todo.') }}'); return; }
+                var container = form.querySelector('div[id$="-ids"]');
+                container.innerHTML = '';
+                ids.forEach(function(id) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'todo_ids[]';
+                    input.value = id;
+                    container.appendChild(input);
+                });
+            });
+        });
+        </script>
+        @endif
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
                     <tr>
+                        @if(isset($workspace) && $workspace->proman_enabled)
+                        <th class="px-6 py-3 w-10"><span class="sr-only">{{ __('Pilih') }}</span></th>
+                        @endif
                         <th class="px-6 py-3">{{ __('Judul') }}</th>
                         <th class="px-6 py-3">{{ __('Deskripsi') }}</th>
                         <th class="px-6 py-3">{{ __('Pintasan') }}</th>
+                        @if(isset($workspace) && $workspace->proman_enabled)
+                        <th class="px-6 py-3">{{ __('Project Proman') }}</th>
+                        @endif
                         <th class="px-6 py-3">{{ __('Status') }}</th>
                         <th class="px-6 py-3">{{ __('Jatuh tempo') }}</th>
                         <th class="px-6 py-3">{{ __('Aksi') }}</th>
@@ -52,6 +142,11 @@
                 <tbody>
                     @forelse($todos as $todo)
                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            @if(isset($workspace) && $workspace->proman_enabled)
+                            <td class="px-6 py-4">
+                                <input type="checkbox" name="todo_ids[]" value="{{ $todo->id }}" class="todo-batch-checkbox w-4 h-4 rounded">
+                            </td>
+                            @endif
                             <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ $todo->title }}</td>
                             <td class="px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate" title="{{ $todo->description }}">{{ Str::limit($todo->description, 40) ?: '—' }}</td>
                             <td class="px-6 py-4">
@@ -61,6 +156,9 @@
                                     —
                                 @endif
                             </td>
+                            @if(isset($workspace) && $workspace->proman_enabled)
+                            <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $todo->promanProject?->name ?? '—' }}</td>
+                            @endif
                             <td class="px-6 py-4">
                                 <span class="px-2 py-1 text-xs font-medium rounded {{ $todo->status === 'done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : ($todo->status === 'in_progress' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200') }}">
                                     {{ \App\Models\Todo::statuses()[$todo->status] ?? $todo->status }}
@@ -78,7 +176,50 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">{{ $currentDate ? __('Tidak ada todo untuk tanggal ini.') : __('Belum ada todo.') }}</td>
+                            <td colspan="{{ isset($workspace) && $workspace->proman_enabled ? 8 : 6 }}" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">{{ $currentDate ? __('Tidak ada todo untuk tanggal ini.') : __('Belum ada todo.') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @elseif($viewMode === 'proman')
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3">{{ __('Todo') }}</th>
+                        <th class="px-6 py-3">{{ __('ID Task') }}</th>
+                        <th class="px-6 py-3">{{ __('ID Project') }}</th>
+                        <th class="px-6 py-3">{{ __('Status di Proman') }}</th>
+                        <th class="px-6 py-3">{{ __('Dibuat') }}</th>
+                        <th class="px-6 py-3">{{ __('Selesai di Proman') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($promanTasks as $pt)
+                        <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                @if($pt->todo)
+                                    <a href="{{ route('todos.edit', $pt->todo) }}" class="text-blue-600 dark:text-blue-400 hover:underline">{{ $pt->todo->title }}</a>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 font-mono text-gray-600 dark:text-gray-400 text-xs">{{ $pt->id_task }}</td>
+                            <td class="px-6 py-4 font-mono text-gray-600 dark:text-gray-400 text-xs">{{ $pt->id_project }}</td>
+                            <td class="px-6 py-4">
+                                @if($pt->isCompleted())
+                                    <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">{{ __('Selesai') }}</span>
+                                @else
+                                    <span class="px-2 py-1 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">{{ __('Belum selesai') }}</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $pt->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ $pt->progress_completed_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">{{ __('Belum ada task yang dikirim ke Proman.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

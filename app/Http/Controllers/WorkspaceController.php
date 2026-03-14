@@ -50,8 +50,14 @@ class WorkspaceController extends Controller
             abort(403);
         }
 
-        $request->validate(['name' => 'required|string|max:255']);
-        $workspace->update($request->only('name'));
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'proman_enabled' => 'nullable|boolean',
+        ]);
+        $workspace->update([
+            'name' => $request->input('name'),
+            'proman_enabled' => $request->boolean('proman_enabled'),
+        ]);
 
         return redirect()->route('settings.workspace.index')->with('success', __('Workspace diperbarui.'));
     }

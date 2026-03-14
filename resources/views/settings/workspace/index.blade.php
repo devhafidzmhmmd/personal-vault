@@ -25,10 +25,13 @@
             <tbody>
                 @forelse($workspaces as $workspace)
                     <tr class="bg-white border-b hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium text-gray-900">
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
                             {{ $workspace->name }}
                             @if($currentWorkspace && $currentWorkspace->id === $workspace->id)
-                                <span class="ml-2 text-xs text-gray-500">(aktif)</span>
+                                <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">(aktif)</span>
+                            @endif
+                            @if($workspace->proman_enabled ?? false)
+                                <span class="ml-2 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Proman</span>
                             @endif
                         </td>
                         <td class="px-6 py-4">

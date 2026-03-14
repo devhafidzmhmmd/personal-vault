@@ -21,6 +21,7 @@
     },
     "dependencies": {
         "laravel-echo": "^2.3.0",
+        "leaflet": "^1.9.4",
         "pusher-js": "^8.4.0",
         "sortablejs": "^1.15.7"
     }

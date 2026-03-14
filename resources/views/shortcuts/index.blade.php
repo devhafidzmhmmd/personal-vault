@@ -27,7 +27,14 @@
             <tbody>
                 @forelse($shortcuts as $shortcut)
                     <tr class="bg-white border-b hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium text-gray-900">{{ $shortcut->title }}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900">
+                            <span class="inline-flex items-center gap-2">
+                                @if($shortcut->favicon_url)
+                                    <img src="{{ $shortcut->favicon_url }}" alt="" class="w-5 h-5 object-contain shrink-0">
+                                @endif
+                                {{ $shortcut->title }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4 truncate max-w-xs">{{ $shortcut->url }}</td>
                         <td class="px-6 py-4">{{ $workspace->name ?? ($shortcut->workspace?->name ?? '—') }}</td>
                         <td class="px-6 py-4">

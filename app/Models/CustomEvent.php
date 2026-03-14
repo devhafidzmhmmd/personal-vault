@@ -10,11 +10,16 @@ class CustomEvent extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['workspace_id', 'title', 'event_date', 'description'];
+    protected $fillable = ['workspace_id', 'title', 'event_date', 'event_end_date', 'description', 'is_special'];
 
-    protected $casts = [
-        'event_date' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'event_date' => 'date',
+            'event_end_date' => 'date',
+            'is_special' => 'boolean',
+        ];
+    }
 
     public function workspace(): BelongsTo
     {

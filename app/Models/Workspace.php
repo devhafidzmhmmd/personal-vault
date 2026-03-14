@@ -11,7 +11,14 @@ class Workspace extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'name'];
+    protected $fillable = ['user_id', 'name', 'proman_enabled'];
+
+    protected function casts(): array
+    {
+        return [
+            'proman_enabled' => 'boolean',
+        ];
+    }
 
     public function user(): BelongsTo
     {
@@ -41,5 +48,10 @@ class Workspace extends Model
     public function customEvents(): HasMany
     {
         return $this->hasMany(CustomEvent::class)->orderBy('event_date');
+    }
+
+    public function promanProjects(): HasMany
+    {
+        return $this->hasMany(PromanProject::class)->orderBy('name');
     }
 }

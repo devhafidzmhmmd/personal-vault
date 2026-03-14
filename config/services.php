@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'proman' => [
+        'auth_url' => env('PROMAN_AUTH_URL', 'https://your-proman-auth-url.com'),
+        'submit_url' => env('PROMAN_SUBMIT_URL', 'https://your-proman-submit-url.com'),
+        'update_progress_url' => env('PROMAN_UPDATE_PROGRESS_URL', 'https://dcktrp.jakarta.go.id/proman/api/tasks/update-progress'),
+        'app_key' => env('PROMAN_APP_KEY', 'your-proman-app-key'),
+    ],
 ];

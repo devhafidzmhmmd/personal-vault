@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'vault.unlocked' => \App\Http\Middleware\EnsureVaultUnlocked::class,
+            'proman.enabled' => \App\Http\Middleware\EnsurePromanEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
